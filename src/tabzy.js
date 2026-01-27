@@ -35,12 +35,13 @@ class Tabzy{
     _resolveTab(input){
         if(typeof input === 'string'){
             return this.tabs.find(tab => 
-                tab.getAttribute('href') === input);
+                tab.getAttribute('href') === input) ;
         }
         
         if(input instanceof HTMLElement){
-            return input
+            return this.tabs.includes(input) ? input : null;
         }
+        
         return null;
     }
 
@@ -83,7 +84,11 @@ class Tabzy{
     // Hàm chuyển đổi tab
     switch(input){
         const tab = this._resolveTab(input); // Xac định tab từ đầu vào
-        if(!tab) return;
+        if(!tab) {
+            console.error(`[Tabzy] switch(): cannot find tab for`,
+            input);
+            return;
+        }
         const panel = document.querySelector(tab.getAttribute('href'));
         if(!panel) return;
 
@@ -107,7 +112,7 @@ class Tabzy{
         })
     }
 
-    // Khởi động hệ thống tab
+        // Khởi động hệ thống tab
     _init() {
         this._bindEvents(); 
         this._restoreFromUrl() || this.switch(this.tabs[0]);
