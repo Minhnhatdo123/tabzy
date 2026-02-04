@@ -10,6 +10,7 @@ class Tabzy{
         this.options = Object.assign({
             activeClassName: 'tabzy-active',
             remember: false,
+            paramKey: selector.replace(/[^a-z0-9]/gi,''), // Lấy tên tham số từ selector
             onChange: null
         }, options);
 
@@ -66,19 +67,41 @@ class Tabzy{
     // Hàm khôi phục tab từ URL nếu có
     _restoreFromUrl(){
         if(!this.options.remember) return false;
-        const hash = window.location.hash; // Lấy phần hash từ URL
-        if(!hash) return false;
+        if(!this.options.paramKey) return false;
+        // Chuyển xử lý query String sau dấu ? : URLSearchParams
+        // ví dụ: https://site.com/?tab=home&page=2
+        // url.search = "?tab=home&page=2"
+        const params = new URLSearchParams(window.location.search); 
+        // ví dụ "?tab=home&mode=dark"
+        // Dùng paramkey để lấy giá trị tương ứng - paramkey ="tab"
+        const value = params.get(this.options.paramKey);
+        if(!value) return false;
 
-        const tab = this._resolveTab(hash);
+        const tab = this._resolveTab('#' + value);
         if(!tab) return false;
+
         this.switch(tab);
         return true;
     }
 
+    // Hàm cập nhật URL khi chuyển đổi tab
     _updateUrl(tab){
         if(!this.options.remember) return;
-        const hash = tab.getAttribute('href');
-        history.replaceState(null, '', hash);
+
+        const key = this.options.paramKey; 
+        if(!key) return;
+
+        // Lấy giá trị từ tab hiện tại
+        const value = tab.getAttribute('href').replace('#','');
+
+        // Tạo đối tượng URL Object có cấu trúc
+        // url.href = "https://site.com/?tab=home&page=2" 
+        const url = new URL(window.location.href); 
+        // Cập nhật tham số trong URL : giữ nguyên param cũ và update param mới
+        url.searchParams.set(key, value); 
+
+        // Cập nhật URL mà không tải lại trang
+        history.replaceState(null, '', url.toString());
     }
 
     // Hàm chuyển đổi tab
@@ -114,7 +137,7 @@ class Tabzy{
 
         // Khởi động hệ thống tab
     _init() {
-        this._bindEvents(); 
+        this._bindEvents(); // Gán sự kiện cho các tab
         this._restoreFromUrl() || this.switch(this.tabs[0]);
     }
     
@@ -135,6 +158,7 @@ class Tabzy{
 const tabs = new Tabzy('#fancy-tabs',{
     activeClassName: 'tabzy--active',
     remember: true, // Keeps the active tab in the URL
+    paramKey:'personal-tabs',
     onChange: function({ tab, panel }) {
         console.log(`Switched to ${tab.textContent}`);
     }
@@ -142,5 +166,5 @@ const tabs = new Tabzy('#fancy-tabs',{
 
 const tabs2 = new Tabzy('#persistent-tabs',{
     activeClassName: 'active',
-    remember: false, // Does not keep the active tab in the URL   
+    remember: true, // Does not keep the active tab in the URL   
 });
