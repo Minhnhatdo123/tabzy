@@ -26,7 +26,9 @@ class Tabzy{
         document.querySelector(tab.getAttribute('href'))).filter(Boolean);
         
         if(this.panels.length !== this.tabs.length) return;
+        
 
+        this._currentTab = null; // tab hiện tại
         this._handles = []; // mảng lưu trữ các hàm xử lý sự kiện
         this._init(); // hàm khởi động
     }
@@ -113,6 +115,8 @@ class Tabzy{
             input);
             return;
         }
+
+        if(tab === this._currentTab) return; // Nếu tab đã được kích hoạt thì không làm gì cả
         const panel = document.querySelector(tab.getAttribute('href'));
         if(!panel) return;
 
@@ -120,6 +124,7 @@ class Tabzy{
         this._activeTab(tab, panel); // Kích hoạt tab và panel được chọn
         this._updateUrl(tab); // Cập nhật URL nếu cần
 
+        this._currentTab = tab; // Cập nhật tab hiện tại
         // Gọi hàm onChange nếu được cung cấp
         if(!silent)
         {
