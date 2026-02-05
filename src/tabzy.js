@@ -68,7 +68,7 @@ class Tabzy{
     _restoreFromUrl(){
         if(!this.options.remember) return false;
         if(!this.options.paramKey) return false;
-        // Chuyển xử lý query String sau dấu ? : URLSearchParams
+        //  xử lý tham số truy vấn sau dấu ? : URLSearchParams
         // ví dụ: https://site.com/?tab=home&page=2
         // url.search = "?tab=home&page=2"
         const params = new URLSearchParams(window.location.search); 
@@ -80,7 +80,7 @@ class Tabzy{
         const tab = this._resolveTab('#' + value);
         if(!tab) return false;
 
-        this.switch(tab);
+        this.switch(tab,{silent: true});
         return true;
     }
 
@@ -105,7 +105,8 @@ class Tabzy{
     }
 
     // Hàm chuyển đổi tab
-    switch(input){
+    switch(input,options = {}){
+        const {silent = false} = options;
         const tab = this._resolveTab(input); // Xac định tab từ đầu vào
         if(!tab) {
             console.error(`[Tabzy] switch(): cannot find tab for`,
@@ -120,7 +121,10 @@ class Tabzy{
         this._updateUrl(tab); // Cập nhật URL nếu cần
 
         // Gọi hàm onChange nếu được cung cấp
-        this.options.onChange?.({tab, panel});
+        if(!silent)
+        {
+            this.options.onChange?.({tab, panel});
+        }
     }
 
         // Hàm gán sự kiện cho các tab
@@ -138,7 +142,7 @@ class Tabzy{
         // Khởi động hệ thống tab
     _init() {
         this._bindEvents(); // Gán sự kiện cho các tab
-        this._restoreFromUrl() || this.switch(this.tabs[0]);
+        this._restoreFromUrl() || this.switch(this.tabs[0],{silent: true}); // Khôi phục tab từ URL hoặc kích hoạt tab đầu tiên 
     }
     
     /**           ============ Destroy =========== */
