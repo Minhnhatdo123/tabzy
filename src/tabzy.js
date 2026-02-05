@@ -108,7 +108,7 @@ class Tabzy{
 
     // Hàm chuyển đổi tab
     switch(input,options = {}){
-        const {silent = false} = options;
+        const {silent = false} = options; // tùy chọn im lặng
         const tab = this._resolveTab(input); // Xac định tab từ đầu vào
         if(!tab) {
             console.error(`[Tabzy] switch(): cannot find tab for`,
