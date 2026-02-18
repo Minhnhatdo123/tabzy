@@ -418,14 +418,16 @@ img {
 /* Tabzy Styles */
 .tabzy-wrapper {
     position: relative;
+    overflow:visible;
+    min-height: 60px;
 }
 
 .tabzy-tabs {
+    position: relative;
     list-style: none;
     padding: 0;
     display: flex;
     gap: 15px;
-    margin-bottom: 20px;
     border-bottom: 2px solid #e0e0e0;
 }
 
@@ -449,23 +451,21 @@ img {
     color: var(--primary);
 }
 
-.tabzy-tabs:not(.sliding) .tabzy--active::after {
-    content: "";
-    position: absolute;
-    bottom: -2px;
-    left: 0;
-    width: 100%;
-    height: 2px;
-    background: var(--primary);
-}
-
 .active-line {
     position: absolute;
+    bottom: 15px;
     left: 0;
-    bottom: 0;
     height: 2px;
     background: var(--primary);
-    transition: transform 0.3s ease, width 0.3s ease;
+    width: 0;
+    transition: width 0.3s ease, transform 0.3s ease;
+    z-index: 2;
+}
+
+.tabzy-content {
+    position: relative;
+    overflow: hidden;
+    min-height: 60px;
 }
 
 .tabzy-panel {

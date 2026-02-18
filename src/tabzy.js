@@ -108,7 +108,7 @@ class Tabzy{
 
     // Hàm chuyển đổi tab
     switch(input,options = {}){
-        const {silent = false} = options; // tùy chọn im lặng
+        const {silent = false} = options;
         const tab = this._resolveTab(input); // Xac định tab từ đầu vào
         if(!tab) {
             console.error(`[Tabzy] switch(): cannot find tab for`,
@@ -163,17 +163,43 @@ class Tabzy{
     }
 }
 
+function moveActiveLine(tab)
+{
+    const container = tab.closest('.tabzy-wrapper');
+    const line = container.querySelector('.active-line');
+    console.log(line)
+    if(line) {
+        const li = tab.parentElement;
+        line.style.width = li.offsetWidth + 'px';
+        line.style.transform = `translateX(${li.offsetLeft}px)`;
+    }
+}
 
-const tabs = new Tabzy('#fancy-tabs',{
+const tabs1 = new Tabzy('#fancy-tabs',{
     activeClassName: 'tabzy--active',
     remember: true, // Keeps the active tab in the URL
     paramKey:'personal-tabs',
     onChange: function({ tab, panel }) {
+        moveActiveLine(tab);
         console.log(`Switched to ${tab.textContent}`);
     }
 });
 
 const tabs2 = new Tabzy('#persistent-tabs',{
-    activeClassName: 'active',
+    activeClassName: 'tabzy--active',
     remember: true, // Does not keep the active tab in the URL   
+    onChange: function({ tab, panel }) {
+        console.log(`Switched to ${tab.textContent}`);
+        moveActiveLine(tab);
+    }
+});
+
+const tabs3 = new Tabzy('#sliding-tabs',{
+    activeClassName: 'tabzy--active',
+    remember: true, // Keeps the active tab in the URL
+    paramKey:'personal-tabs',
+    onChange: function({ tab, panel }) {
+        console.log(`Switched to ${tab.textContent}`);
+        moveActiveLine(tab);
+    }
 });
