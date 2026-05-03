@@ -11,7 +11,8 @@ class Tabzy{
             activeClassName: 'tabzy-active',
             remember: false,
             paramKey: selector.replace(/[^a-z0-9]/gi,''), // Lấy tên tham số từ selector
-            onChange: null
+            onChange: null,
+            onInit:null // Hàm callback khi khởi tạo
         }, options);
 
         // Tìm tất cả các tab và panel bên trong container
@@ -23,14 +24,51 @@ class Tabzy{
 
         // Tìm các panel tương ứng với các tab
         this.panels = this.tabs.map(tab => 
-        document.querySelector(tab.getAttribute('href'))).filter(Boolean);
+        this.container.querySelector(tab.getAttribute('href'))).filter(Boolean);
         
-        if(this.panels.length !== this.tabs.length) return;
+        if(this.panels.length !== this.tabs.length){
+            console.warn('Some tabs do not have corresponding panels.');
+        };
         
 
         this._currentTab = null; // tab hiện tại
         this._handles = []; // mảng lưu trữ các hàm xử lý sự kiện
+        this._popHandler = null; // hàm xử lý sự kiện popstate
         this._init(); // hàm khởi động
+    }
+
+    get currentTab()
+    {
+        return this._currentTab;
+    }
+
+    // Khởi động hệ thống tab
+    _init() {
+        this._bindEvents(); // Gán sự kiện cho các tab
+        const restored = this._restoreFromUrl(); // Khôi phục tab từ URL nếu có
+        if (!restored) {
+            this.switch(this.tabs[0], {silent: true}); // Kích hoạt tab đầu tiên
+        }
+        if(this._currentTab){
+            this.options.onInit?.({tab: this._currentTab});
+        }
+    }
+
+    // Hàm gán sự kiện cho các tab
+    _bindEvents() {
+        this.tabs.forEach(tab => {
+            const handler = (e) =>{
+                e.preventDefault();
+                this.switch(tab);
+            }
+            tab.addEventListener('click', handler);
+            this._handles.push({tab, handler});
+        })
+        // Nếu tùy chọn remember được bật, gán sự kiện popstate để khôi phục tab khi người dùng sử dụng nút back/forward của trình duyệt
+        if(this.options.remember){
+            this._popHandler = () => this._restoreFromUrl();
+            window.addEventListener('popstate', this._popHandler);
+        }
     }
 
 
@@ -69,7 +107,6 @@ class Tabzy{
     // Hàm khôi phục tab từ URL nếu có
     _restoreFromUrl(){
         if(!this.options.remember) return false;
-        if(!this.options.paramKey) return false;
         //  xử lý tham số truy vấn sau dấu ? : URLSearchParams
         // ví dụ: https://site.com/?tab=home&page=2
         // url.search = "?tab=home&page=2"
@@ -82,7 +119,7 @@ class Tabzy{
         const tab = this._resolveTab('#' + value);
         if(!tab) return false;
 
-        this.switch(tab,{silent: true});
+        this.switch(tab,{silent: true});    
         return true;
     }
 
@@ -103,7 +140,7 @@ class Tabzy{
         url.searchParams.set(key, value); 
 
         // Cập nhật URL mà không tải lại trang
-        history.replaceState(null, '', url.toString());
+        history.pushState(null, '', url.toString());
     }
 
     // Hàm chuyển đổi tab
@@ -117,38 +154,23 @@ class Tabzy{
         }
 
         if(tab === this._currentTab) return; // Nếu tab đã được kích hoạt thì không làm gì cả
-        const panel = document.querySelector(tab.getAttribute('href'));
+        const panel = this.container.querySelector(tab.getAttribute('href'));
         if(!panel) return;
 
         this._resetActiveTab(); // Hủy kích hoạt tất cả các tab và panel
         this._activeTab(tab, panel); // Kích hoạt tab và panel được chọn
-        this._updateUrl(tab); // Cập nhật URL nếu cần
-
+        
         this._currentTab = tab; // Cập nhật tab hiện tại
         // Gọi hàm onChange nếu được cung cấp
         if(!silent)
         {
+            this._updateUrl(tab); // Cập nhật URL nếu cần
             this.options.onChange?.({tab, panel});
         }
     }
 
-        // Hàm gán sự kiện cho các tab
-    _bindEvents() {
-        this.tabs.forEach(tab => {
-            const handler = (e) =>{
-                e.preventDefault();
-                this.switch(tab);
-            }
-            tab.addEventListener('click', handler);
-            this._handles.push({tab, handler});
-        })
-    }
 
-        // Khởi động hệ thống tab
-    _init() {
-        this._bindEvents(); // Gán sự kiện cho các tab
-        this._restoreFromUrl() || this.switch(this.tabs[0],{silent: true}); // Khôi phục tab từ URL hoặc kích hoạt tab đầu tiên 
-    }
+
     
     /**           ============ Destroy =========== */
     destroy(){
@@ -160,14 +182,28 @@ class Tabzy{
         );
         this.panels.forEach(panel => panel.hidden = false);
         this._handles = [];
+
+        // Nếu tùy chọn remember được bật, gỡ bỏ sự kiện popstate
+        if(this.options.remember && this._popHandler){
+            window.removeEventListener('popstate', this._popHandler);
+            this._popHandler = null;
+        }
+
+        if(this.options.remember && this.options.paramKey){
+            const url = new URL(window.location.href);
+            url.searchParams.delete(this.options.paramKey);
+            history.replaceState(null, '', url.toString());
+        }
+
+        this._currentTab = null;
     }
 }
 
 function moveActiveLine(tab)
 {
     const container = tab.closest('.tabzy-wrapper');
+    if(!container) return;
     const line = container.querySelector('.active-line');
-    console.log(line)
     if(line) {
         const li = tab.parentElement;
         line.style.width = li.offsetWidth + 'px';
@@ -179,6 +215,8 @@ const tabs1 = new Tabzy('#fancy-tabs',{
     activeClassName: 'tabzy--active',
     remember: true, // Keeps the active tab in the URL
     paramKey:'personal-tabs',
+    onInit:({tab}) => moveActiveLine(tab)
+    ,
     onChange: function({ tab, panel }) {
         moveActiveLine(tab);
         console.log(`Switched to ${tab.textContent}`);
@@ -187,19 +225,20 @@ const tabs1 = new Tabzy('#fancy-tabs',{
 
 const tabs2 = new Tabzy('#persistent-tabs',{
     activeClassName: 'tabzy--active',
-    remember: true, // Does not keep the active tab in the URL   
+    remember: true, // Does not keep the active tab in the URL 
+    onInit:({tab}) => moveActiveLine(tab),  
     onChange: function({ tab, panel }) {
         console.log(`Switched to ${tab.textContent}`);
         moveActiveLine(tab);
     }
 });
 
-const tabs3 = new Tabzy('#sliding-tabs',{
-    activeClassName: 'tabzy--active',
-    remember: true, // Keeps the active tab in the URL
-    paramKey:'personal-tabs',
-    onChange: function({ tab, panel }) {
-        console.log(`Switched to ${tab.textContent}`);
-        moveActiveLine(tab);
-    }
-});
+// const tabs3 = new Tabzy('#sliding-tabs',{
+//     activeClassName: 'tabzy--active',
+//     remember: true, // Keeps the active tab in the URL
+//     paramKey:'personal-tabs',
+//     onChange: function({ tab, panel }) {
+//         console.log(`Switched to ${tab.textContent}`);
+//         moveActiveLine(tab);
+//     }
+// });
