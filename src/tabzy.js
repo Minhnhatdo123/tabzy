@@ -15,6 +15,11 @@ class Tabzy{
             onInit:null // Hàm callback khi khởi tạo
         }, options);
 
+        if(this.options.onChange && typeof this.options.onChange !== 'function') {
+            console.error('onChange option must be a function');
+            this.options.onChange = null;
+        }
+        
         // Tìm tất cả các tab và panel bên trong container
         this.tabs = [...this.container.querySelectorAll('a[href^="#"]')];
         if(!this.tabs.length) {
@@ -24,10 +29,11 @@ class Tabzy{
 
         // Tìm các panel tương ứng với các tab
         this.panels = this.tabs.map(tab => 
-        this.container.querySelector(tab.getAttribute('href'))).filter(Boolean);
+        document.querySelector(tab.getAttribute('href'))).filter(Boolean);
         
         if(this.panels.length !== this.tabs.length){
             console.warn('Some tabs do not have corresponding panels.');
+            return;
         };
         
 
@@ -45,10 +51,7 @@ class Tabzy{
     // Khởi động hệ thống tab
     _init() {
         this._bindEvents(); // Gán sự kiện cho các tab
-        const restored = this._restoreFromUrl(); // Khôi phục tab từ URL nếu có
-        if (!restored) {
-            this.switch(this.tabs[0], {silent: true}); // Kích hoạt tab đầu tiên
-        }
+        this._restoreFromUrl() || this.switch(this.tabs[0],{silent: true}); // Khôi phục tab từ URL hoặc kích hoạt tab đầu tiên 
         if(this._currentTab){
             this.options.onInit?.({tab: this._currentTab});
         }
@@ -154,17 +157,18 @@ class Tabzy{
         }
 
         if(tab === this._currentTab) return; // Nếu tab đã được kích hoạt thì không làm gì cả
-        const panel = this.container.querySelector(tab.getAttribute('href'));
+        const panel = document.querySelector(tab.getAttribute('href'));
         if(!panel) return;
 
         this._resetActiveTab(); // Hủy kích hoạt tất cả các tab và panel
         this._activeTab(tab, panel); // Kích hoạt tab và panel được chọn
+        moveActiveLine(tab); // Di chuyển active line nếu có
+        this._updateUrl(tab); // Cập nhật URL nếu cần
         
         this._currentTab = tab; // Cập nhật tab hiện tại
         // Gọi hàm onChange nếu được cung cấp
         if(!silent)
         {
-            this._updateUrl(tab); // Cập nhật URL nếu cần
             this.options.onChange?.({tab, panel});
         }
     }
@@ -204,17 +208,23 @@ function moveActiveLine(tab)
     const container = tab.closest('.tabzy-wrapper');
     if(!container) return;
     const line = container.querySelector('.active-line');
-    if(line) {
-        const li = tab.parentElement;
-        line.style.width = li.offsetWidth + 'px';
-        line.style.transform = `translateX(${li.offsetLeft}px)`;
-    }
+    if(!line) return;
+
+    const li = tab.closest('li');
+    requestAnimationFrame(() => {
+        const react = li.getBoundingClientRect();
+        const parentReact = li.parentElement.getBoundingClientRect();
+        
+        line.style.width = react.width + 'px';
+        line.style.transform = `translateX(${react.left - parentReact.left}px)`;
+    })
+    
 }
 
 const tabs1 = new Tabzy('#fancy-tabs',{
     activeClassName: 'tabzy--active',
     remember: true, // Keeps the active tab in the URL
-    paramKey:'personal-tabs',
+    paramKey:'fancy-tabs',
     onInit:({tab}) => moveActiveLine(tab)
     ,
     onChange: function({ tab, panel }) {
@@ -226,10 +236,11 @@ const tabs1 = new Tabzy('#fancy-tabs',{
 const tabs2 = new Tabzy('#persistent-tabs',{
     activeClassName: 'tabzy--active',
     remember: true, // Does not keep the active tab in the URL 
+    paramKey:"persistent-tabs",
     onInit:({tab}) => moveActiveLine(tab),  
     onChange: function({ tab, panel }) {
-        console.log(`Switched to ${tab.textContent}`);
         moveActiveLine(tab);
+        console.log(`Switched to ${tab.textContent}`);
     }
 });
 
