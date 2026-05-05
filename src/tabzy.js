@@ -225,8 +225,7 @@ const tabs1 = new Tabzy('#fancy-tabs',{
     activeClassName: 'tabzy--active',
     remember: true, // Keeps the active tab in the URL
     paramKey:'fancy-tabs',
-    onInit:({tab}) => moveActiveLine(tab)
-    ,
+    onInit:({tab}) => moveActiveLine(tab), 
     onChange: function({ tab, panel }) {
         moveActiveLine(tab);
         console.log(`Switched to ${tab.textContent}`);
